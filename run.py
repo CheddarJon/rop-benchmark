@@ -52,9 +52,14 @@ def run_test(args):
     `testname`.
     """
     from subprocess import Popen, PIPE, STDOUT
+    from os import environ
 
     testname, tool, exploit_type, bad_chars = args
-    cmd = ["/usr/bin/python3", "{}/job_{}.py".format(tool, exploit_type), testname]
+    cmd = [f"/venv-{tool}/bin/python3", "{}/job_{}.py".format(tool, exploit_type), testname]
+
+    old_path = environ["PATH"]
+    environ["PATH"] = f"/venv-{tool}/bin:{old_path}"
+    environ["VIRTUAL_ENV"] = f'/venv-{tool}'
     if bad_chars:
         cmd += ["-d", bad_chars]
     if timeout is not None:
@@ -71,6 +76,9 @@ def run_test(args):
     signal.signal(signal.SIGTERM, handle)
     process = Popen(cmd, stdout=PIPE, stderr=STDOUT)
     stdout, stderr = process.communicate()
+
+    environ["PATH"] = old_path
+    del environ["VIRTUAL_ENV"]
 
     return (process.returncode, stdout)
 
@@ -132,7 +140,7 @@ exploit_types = ["execve"]
 reallife_test_suites = list_all_reallife_test_suites()
 
 if not args.tool:
-    tools = ["ropgadget", "angrop", "ropium", "ropper", "exrop"]
+    tools = ["ropgadget", "angrop", "ropium", "ropper", "sgc"]
 else:
     tools = [args.tool]
 

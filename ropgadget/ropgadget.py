@@ -47,17 +47,17 @@ class ROPGadget:
             if line == b"- Step 5 -- Build the ROP chain":
                 n = i
             if i > n:
-                ropchain_generator.append(line[1:])
+                ropchain_generator.append(line)
         if not ropchain_generator:
             self.logger.error("ROPgadget could not generate a chain")
             exit(1)
-        ropchain_generator.append(b"print p")
+        ropchain_generator.append(b"print(p.decode())")
 
         script_path = "{}.ropgadget.script".format(self.binary)
         with open(script_path, 'wb') as script:
             script.write(b"\n".join(ropchain_generator))
 
-        script_cmd = ["/usr/bin/python2", script_path]
+        script_cmd = ["/usr/bin/python3", script_path]
         with open(self.ropchain, "wb") as ropchain_output:
             script_p = Popen(script_cmd, stdout=ropchain_output, stderr=PIPE)
             try:

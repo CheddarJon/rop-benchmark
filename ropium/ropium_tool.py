@@ -18,7 +18,7 @@ class Ropium:
         from os.path import abspath, dirname, join
 
         runner = abspath(join(dirname(__file__), "ropium_runner.py"))
-        cmd = ["/usr/bin/python3", runner, self.binary, self.ropchain, self.script, self.rwaddr]
+        cmd = ["python3", runner, self.binary, self.ropchain, self.script, self.rwaddr]
         if self.bad_chars:
             cmd += [self.bad_chars]
         self.logger.debug("Run ropium: {}".format(" ".join(cmd)))
