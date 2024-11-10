@@ -76,6 +76,39 @@ RUN python3 -m venv venv-gadgetplanner && \
     pip3 install tensorflow==2.4.3 && \
     cd / && deactivate
 
+ARG GHIDRA_VERSION="9.2.2"
+ARG GHIDRA_VERSION_FULL="9.2.2_PUBLIC_20201229"
+ARG GHIDRA_SHA256="8cf8806dd5b8b7c7826f04fad8b86fc7e07ea380eae497f3035f8c974de72cf8"
+
+# Additional dependencies for ghidra (sgc)
+RUN apt-get install -y wget
+
+# Install Ghidra (required by Sgc)
+RUN mkdir /venv-sgc/builds && cd /venv-sgc/builds && \
+    wget -q -O ghidra.zip https://github.com/NationalSecurityAgency/ghidra/releases/download/Ghidra_${GHIDRA_VERSION}_build/ghidra_${GHIDRA_VERSION_FULL}.zip && \
+    echo "${GHIDRA_SHA256} *ghidra.zip" | sha256sum -c && \
+    unzip -q ghidra.zip && \
+    rm ghidra.zip
+
+# Create symbolic links to ghidra and ghidra-analyzeHeadless
+RUN ln -s /venv-sgc/builds/ghidra* /bin/ghidra && \
+    ln -s /venv-sgc/builds/ghidra*/support/analyzeHeadless /bin/ghidra-analyzeHeadless
+
+# Install boolector deps.
+RUN apt-get install -y cmake
+
+# Install boolector (sgc)
+RUN mkdir -p /venv-sgc/builds && cd /venv-sgc/builds && \
+    wget -q -O boolector.zip https://github.com/Boolector/boolector/archive/refs/tags/3.2.2.zip && \
+    unzip -q boolector.zip && rm boolector.zip && \
+    mv boolector-* boolector && cd boolector && \
+    ./contrib/setup-lingeling.sh && \
+    ./contrib/setup-btor2tools.sh && \
+    ./configure.sh && cd build && make
+
+# Create symlink for boolector (sgc)
+RUN ln -s /venv-sgc/builds/boolector/build/bin/boolector /usr/bin/boolector
+
 # create symlink /bin/sh -> /zh
 RUN rm -rf /bin/sh && ln -s /zh /bin/sh && \
     rm -rf /var/lib/apt/lists/* /root/.cache
