@@ -6,7 +6,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 COPY ./zh /zh
 RUN apt-get update && \
-    apt-get install -y locales python python3 python3-pip python3-venv make gcc nasm git libcapstone-dev curl unzip && \
+    apt-get install -y locales python python3 python3-pip python3-venv make gcc nasm git libcapstone-dev curl unzip wget cmake && \
 # uncomment locales and generate them
     sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
     locale-gen && \
@@ -58,6 +58,8 @@ RUN python3 -m venv venv-sgc && \
     . venv-sgc/bin/activate && \
     pip3 install -r /base_requirements.txt && \
     pip3 install wheel && \
+    pip3 install fuckpy3==1.0 && \
+    pip3 install forbiddenfruit==0.1.3 && \
     curl -s -o sgc.zip -L https://github.com/RUB-SysSec/gadget_synthesis/archive/6a92a37525aa9810146003906ab41b7eb8e9ce2d.zip && \
     unzip -q sgc.zip && rm sgc.zip && mv gadget_synthesis-* /venv-sgc/sgc && cd /venv-sgc/sgc && \
     pip3 install -r requirements.txt && pip3 install -e . && \
@@ -80,9 +82,6 @@ ARG GHIDRA_VERSION="9.2.2"
 ARG GHIDRA_VERSION_FULL="9.2.2_PUBLIC_20201229"
 ARG GHIDRA_SHA256="8cf8806dd5b8b7c7826f04fad8b86fc7e07ea380eae497f3035f8c974de72cf8"
 
-# Additional dependencies for ghidra (sgc)
-RUN apt-get install -y wget
-
 # Install Ghidra (required by Sgc)
 RUN mkdir /venv-sgc/builds && cd /venv-sgc/builds && \
     wget -q -O ghidra.zip https://github.com/NationalSecurityAgency/ghidra/releases/download/Ghidra_${GHIDRA_VERSION}_build/ghidra_${GHIDRA_VERSION_FULL}.zip && \
@@ -93,9 +92,6 @@ RUN mkdir /venv-sgc/builds && cd /venv-sgc/builds && \
 # Create symbolic links to ghidra and ghidra-analyzeHeadless
 RUN ln -s /venv-sgc/builds/ghidra* /bin/ghidra && \
     ln -s /venv-sgc/builds/ghidra*/support/analyzeHeadless /bin/ghidra-analyzeHeadless
-
-# Install boolector deps.
-RUN apt-get install -y cmake
 
 # Install boolector (sgc)
 RUN mkdir -p /venv-sgc/builds && cd /venv-sgc/builds && \
