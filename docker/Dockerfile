@@ -60,6 +60,7 @@ RUN python3 -m venv venv-sgc && \
     pip3 install wheel && \
     pip3 install fuckpy3==1.0 && \
     pip3 install forbiddenfruit==0.1.3 && \
+    pip3 install ropgadget==7.5 && \
     curl -s -o sgc.zip -L https://github.com/RUB-SysSec/gadget_synthesis/archive/6a92a37525aa9810146003906ab41b7eb8e9ce2d.zip && \
     unzip -q sgc.zip && rm sgc.zip && mv gadget_synthesis-* /venv-sgc/sgc && cd /venv-sgc/sgc && \
     pip3 install -r requirements.txt && pip3 install -e . && \
@@ -101,6 +102,9 @@ RUN mkdir -p /venv-sgc/builds && cd /venv-sgc/builds && \
     ./contrib/setup-lingeling.sh && \
     ./contrib/setup-btor2tools.sh && \
     ./configure.sh && cd build && make
+
+# For Ghidra
+RUN apt-get install -y openjdk-11-jdk
 
 # Create symlink for boolector (sgc)
 RUN ln -s /venv-sgc/builds/boolector/build/bin/boolector /usr/bin/boolector

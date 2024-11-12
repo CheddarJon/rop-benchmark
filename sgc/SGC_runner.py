@@ -36,7 +36,6 @@ class SGC:
 
             crash_addr = 0x0
             crash_addr = self.remote_debug_vulret_addr(self.binary)
-            print(crash_addr)
 
             # set the rsp
             preconditions = []
@@ -61,20 +60,18 @@ class SGC:
                 preconditions.append(reg_info)
             
             reg_lists = ['rax','rbx','rcx','rdx','rsi','rdi', 'rbp', 'r8', 'r9', 'r10', 'r11', 'r12', 'r13', 'r14', 'r15']
-            self.remote_debug_all_regs()
+#            self.remote_debug_all_regs()
             for reg_name in self.precondition:
                 register_info = hex(self.precondition[reg_name])
                 preconditions.append([reg_name.upper(), register_info, 64])
-            print(preconditions)
             data['preconditions'] = preconditions
 
             postconditions = []
             for reg_info in data['postconditions']:
-
                 if(reg_info[0] == 'IRDst'):
-                    syscall_gadget_addr = self.find_syscall_gadget(self.binary)
-                    if(syscall_gadget_addr != ''):
-                        reg_info[1] = syscall_gadget_addr
+                   syscall_gadget_addr = self.find_syscall_gadget(self.binary)
+                   if(syscall_gadget_addr != ''):
+                       reg_info[1] = syscall_gadget_addr
                 
                 postconditions.append(reg_info)
             
@@ -181,7 +178,7 @@ class SGC:
     def find_ret_gadget(self, program_path):  
         
         ret_gadget_addr = 0x0
-        command = ['ROPgadget', '--binary', program_path]
+        command = ['/venv-sgc/bin/ROPgadget', '--binary', program_path]
         p1 = subprocess.Popen(command, stdout=subprocess.PIPE)
         process = subprocess.Popen(["grep", ": ret$"], stdin=p1.stdout, stdout=subprocess.PIPE)
         
@@ -190,7 +187,7 @@ class SGC:
                 ret_gadget_addr = line.split(b' : ')[0]
         
         if(ret_gadget_addr == 0x0):
-            command = ['ROPgadget', '--binary', program_path]
+            command = ['/venv-sgc/bin/ROPgadget', '--binary', program_path]
             p1 = subprocess.Popen(command, stdout=subprocess.PIPE)
             process = subprocess.Popen(["grep", ": ret 0$"], stdin=p1.stdout, stdout=subprocess.PIPE)
             process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
@@ -203,7 +200,7 @@ class SGC:
     def find_syscall_gadget(self, program_path):
 
         syscall_gadget_addr = b''
-        command = ['ROPgadget', '--binary', program_path]
+        command = ['/venv-sgc/bin/ROPgadget', '--binary', program_path]
         p1 = subprocess.Popen(command, stdout=subprocess.PIPE)
         process = subprocess.Popen(["grep", ": syscall$"], stdin=p1.stdout, stdout=subprocess.PIPE)
         for line in process.stdout:
@@ -262,52 +259,15 @@ class SGC:
         return hex(rsp_register_info)
 
     def remote_debug_vulret_addr(self, program_path, ):
-        print(program_path)
         obj_cmd = subprocess.Popen(['objdump', '--disassemble=vul', program_path], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         vul_disass, _ = obj_cmd.communicate()
-        vul_disass = vul_disass.decode()
-        ret_idx = vul_disass.rfind("ret")
-        ret_line_start_idx = vul_disass.rfind("\n", ret_idx)
-        print(f'ret_idx: {ret_idx}, ret_line_start_idx: {ret_line_start_idx}')
-        ret_line = vul_disass[ret_line_start_idx:ret_idx]
-        print(ret_line)
-        print(vul_disass)
-        exit(-2)
-        import random
-        import string
-        letters = string.ascii_lowercase
-        input_file_name = '/tmp/' + ''.join(random.choice(letters) for i in range(6))
-        copyfile(self.win_stack, input_file_name)
-        program_args = input_file_name
-        
-        gdb_cmd = ['gdb'] + [program_path]
-        gdb_proc = subprocess.Popen(gdb_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        print(program_args.encode())
-        gdb_proc.stdin.write(b'b vul\n')
-        if(self.binary_name.startswith('ex') or self.twoparams):
-            gdb_proc.stdin.write(b'r '+ program_args.encode() + b'\n')
-        else:
-            gdb_proc.stdin.write(b'r '+ program_args.encode() + b' 0 \n')
-        gdb_proc.stdin.flush()
+        vul_lines = vul_disass.decode().split('\n')
+        for line in reversed(vul_disass.decode().split('\n')):
+            if 'ret' in line:
+                addr = line.split(':')[0].strip()
+                return hex(int(addr, 16))
 
-        output = gdb_proc.stdout.readline().decode()
-        while 'Breakpoint 1, vul ' not in output:
-            output = gdb_proc.stdout.readline().decode()
-
-        gdb_proc.stdin.write(b'disassemble vul\n')
-        gdb_proc.stdin.flush()
-
-        ret_addr_info = 0x0
-        output = gdb_proc.stdout.readline().decode()
-        while not output.endswith('ret    \n'):
-            output = gdb_proc.stdout.readline().decode()
-
-        ret_addr_info = eval(output.split(' <')[0])
-        gdb_proc.stdin.write(b'quit\n')
-        gdb_proc.stdin.flush()
-        subprocess.run(['rm', inputFileName], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-        return hex(ret_addr_info)
+        return hex(0)
 
     def run_rop_tool(self):
         """
@@ -317,50 +277,43 @@ class SGC:
         """
         from pathlib import Path 
 
-        gadget_synthesis_dir = '/venv-sgc/sgc' 
+        sgc_dir = '/venv-sgc/sgc' 
         target_template_path = f'/rop-benchmark/sgc/target_template' 
         self.binary_name = self.binary.split('/')[-1] 
         target_chain = self.job.split('/')[-1].replace('job_', '').replace('.py', '')
         target_config = f'config_{target_chain}.json'
 
         binary_dir = self.binary[:self.binary.rfind(self.binary_name) - 1]
-        target_dir = f'{binary_dir}/sgc_{self.binary_name}'
+        target_dir = f'/tmp/sgc_{self.binary_name}'
         stack_file = 'stack.bin'
         self.win_stack = os.path.join(target_dir, stack_file)
         target_file = os.path.join(target_dir, self.binary_name)
         json_file = os.path.join(target_dir, target_config)
+        gadgets_dir = os.path.join(target_dir, 'gadgets')
+        smt_out_dir = os.path.join(target_dir, 'smt_out')
 
-        print(f'[SGC] - binary_name: {self.binary_name}, binary_dir: {binary_dir}, target_dir: {target_dir}, chain: {target_chain}')
         if os.path.exists(target_dir):
             rmtree(target_dir)
 
-        Path(target_dir).mkdir()
+        Path(target_dir).mkdir(parents=True)
         copyfile(self.binary, target_file)
         copyfile(os.path.join(target_template_path, target_config), json_file)
         copyfile(os.path.join(target_template_path, stack_file), self.win_stack)
-
         
         self.construct_json(json_file)
 
-        target_file_dir = target_file_dir.split('gadget_synthesis/')[-1]
-        gadgets_out_dir = os.path.join(target_file_dir, 'gadgets')
-        gadgets_out_dir = gadgets_out_dir.split('gadget_synthesis/')[-1]
-        subprocess.run(['rm', '-rf', gadgets_out_dir], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=gadget_synthesis_dir)
-        command_1 = ['/venv-sgc/bin/python3', 'extractor.py', '-c', 'config_execve.json', target_file_dir, '-o', gadgets_out_dir] 
-        process = subprocess.Popen(command_1, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True, cwd=gadget_synthesis_dir)
+        command_1 = ['/venv-sgc/bin/python3', 'extractor.py', '-c', 'config_execve.json', target_dir, '-o', gadgets_dir] 
+        process = subprocess.Popen(command_1, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True, cwd=sgc_dir)
         for line in process.stdout:
             print(line)
 
-        SMT_out_dir = os.path.join(target_file_dir, 'out')
-        SMT_out_dir = SMT_out_dir.split('gadget_synthesis/')[-1]
-        subprocess.run(['rm', '-rf', SMT_out_dir], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=gadget_synthesis_dir)
-        command_2 = ['/venv-sgc/bin/python3', 'synthesizer.py', '-v', '-j', '2', '-c', 'config_execve.json', target_file_dir, '-o', SMT_out_dir] # config_execve.json  config_mprotect.json
+        command_2 = ['/venv-sgc/bin/python3', 'synthesizer.py', '-v', '-j', '2', '-c', 'config_execve.json', target_dir, '-o', smt_out_dir]
         print(command_2)
-        process = subprocess.Popen(command_2, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True, cwd=gadget_synthesis_dir)
+        process = subprocess.Popen(command_2, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True, cwd=sgc_dir)
         for line in process.stdout:
             print(line)
         print(command_2)
-        if(self.get_correct_stack(SMT_out_dir)):
+        if(self.get_correct_stack(smt_out_dir)):
             self.write_csv('result/SGC.3600.x86.0715_3_params_itself.csv',['SGC', self.binary, True])
 
     def write_csv(self, filename, one_row_data):
@@ -370,11 +323,12 @@ class SGC:
             csv_write.writerow(one_row_data)
 
     def get_correct_stack(self, solver_out):
+        # TODO What does this function do??
         current_path = os.path.abspath(__file__)
         gadget_synthesis_dir = '/venv-sgc/sgc'
         rop_benchmark_dir = '/rop-benchmark'
         correct = False
-        solver_self_out = os.path.join(gadget_synthesis_dir, solver_out, self.binary_name.split('.bin')[0])
+        solver_self_out = os.path.join(gadget_synthesis_dir, solver_out, f'sgc_{self.binary_name}')
         print("solver_self_out = " + solver_self_out)
         folders = []
         for name in os.listdir(solver_self_out):
@@ -494,8 +448,7 @@ class SGC:
         
         return min_addr, max_addr
 
-#logging.getLogger('angr').setLevel('CRITICAL')
-logging.getLogger('SGC').error("In SGC Runner")
+logging.getLogger('angr').setLevel('CRITICAL')
 binary = sys.argv[1]
 ropchain_path = sys.argv[2]
 job = sys.argv[3]
