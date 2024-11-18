@@ -7,14 +7,19 @@ from multiprocessing import cpu_count
 binary = sys.argv[1]
 ropchain_path = sys.argv[2]
 
+
 project = Project(binary)
-rop = project.analyses.ROP()
+rop = project.analyses.ROP(only_check_near_rets=False)
+
 if len(sys.argv) == 4:
     import binascii
     bad_chars = sys.argv[3]
     rop.set_badbytes(list(binascii.unhexlify(bad_chars)))
+   
 rop.find_gadgets_single_threaded(show_progress=False)
-chain = rop.execve(b"/bin/sh\x00")
+
+
+chain = rop.execve(path=b"/bin/sh")
 
 script_path = "{}.angrop.script".format(binary)
 with open(script_path, 'w') as script:
