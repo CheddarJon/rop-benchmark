@@ -47,7 +47,7 @@ class ROPGadget:
             if line == b"- Step 5 -- Build the ROP chain":
                 n = i
             if i > n:
-                ropchain_generator.append(line)
+                ropchain_generator.append(line.lstrip())
         if not ropchain_generator:
             self.logger.error("ROPgadget could not generate a chain")
             exit(1)
