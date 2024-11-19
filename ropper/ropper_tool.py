@@ -40,15 +40,13 @@ class Ropper:
                 n = i
             if i >= n:
                 if line == b"print(rop)":
-                    ropchain_generator.append(b"print(rop.decode())")
+                    ropchain_generator.append(b"import fuckpy3")
+                    ropchain_generator.append(b"print(rop.str())")
                     break
                 elif line == b"rop = ''":
                     ropchain_generator.append(b"rop = b''")
                 elif line == b"rop += '//bin/sh'":
                     ropchain_generator.append(b"rop += b'//bin/sh'")
-                elif line == b"rop += p(0xdeadbeefdeadbeef)":
-                    # 0xde at least is not printable...
-                    ropchain_generator.append(b"rop += p(0x4141414141414141)")
                 else:
                     ropchain_generator.append(line)
 
@@ -56,7 +54,7 @@ class Ropper:
         with open(script_path, 'wb') as script:
             script.write(b"\n".join(ropchain_generator))
 
-        script_cmd = ["/usr/bin/python3", script_path]
+        script_cmd = ["/venv-ropper/bin/python3", script_path]
         with open(self.ropchain, "wb") as ropchain_output:
             script_p = Popen(script_cmd, stdout=ropchain_output, stderr=PIPE)
             try:

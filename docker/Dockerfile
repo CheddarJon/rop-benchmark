@@ -24,6 +24,8 @@ ENV LANGUAGE=en_US.utf-8
 RUN python3 -m venv venv-ropgadget && \
     . venv-ropgadget/bin/activate && \
     pip3 install -r /base_requirements.txt && \
+    pip3 install fuckpy3==1.0 && \
+    pip3 install forbiddenfruit==0.1.3 && \
     pip3 install ropgadget==7.5 && \
     deactivate
 
@@ -38,6 +40,8 @@ RUN python3 -m venv venv-ropper && \
     . venv-ropper/bin/activate && \
     pip3 install -r /base_requirements.txt && \
     pip3 install wheel && \
+    pip3 install fuckpy3==1.0 && \
+    pip3 install forbiddenfruit==0.1.3 && \
     pip3 install ropper==1.13.8 && \
     deactivate
 
