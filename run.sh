@@ -10,7 +10,7 @@ trap _term SIGINT
 
 echo 0 | sudo tee /proc/sys/kernel/randomize_va_space >/dev/null 2>&1
 docker run --rm -t -v `pwd`:/rop-benchmark/ \
-  --name="rop-benchmark_test" \
+  --name="rop-benchmark" \
   -e PYTHONUNBUFFERED=1 -e PYTHONPATH=/rop-benchmark \
   rop-benchmark \
   /bin/bash -c "rm /venv-sgc/sgc/synthesizer_config_default.json && \

@@ -363,7 +363,7 @@ class SGC:
         for line in process.stdout:
             print(line)
 
-        command_2 = ['/venv-sgc/bin/python3', 'synthesizer.py', '-v', '-j', '12', '-c', 'config_execve.json', target_dir, '-o', smt_out_dir]
+        command_2 = ['/venv-sgc/bin/python3', 'synthesizer.py', '-v', '-j', '1', '-c', 'config_execve.json', target_dir, '-o', smt_out_dir]
         print(command_2)
         process = subprocess.Popen(command_2, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True, cwd=sgc_dir)
         for line in process.stdout:
