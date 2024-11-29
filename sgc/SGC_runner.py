@@ -6,6 +6,7 @@ import os
 import time
 import json
 import subprocess
+import re
 from elftools.elf.elffile import ELFFile
 from shutil import copyfile, rmtree
 
@@ -60,7 +61,7 @@ class SGC:
                 preconditions.append(reg_info)
             
             reg_lists = ['rax','rbx','rcx','rdx','rsi','rdi', 'rbp', 'r8', 'r9', 'r10', 'r11', 'r12', 'r13', 'r14', 'r15']
-#            self.remote_debug_all_regs()
+            #self.remote_debug_all_regs()
             for reg_name in self.precondition:
                 register_info = hex(self.precondition[reg_name])
                 preconditions.append([reg_name.upper(), register_info, 64])
@@ -79,19 +80,73 @@ class SGC:
 
             min_addr, max_addr = self.get_read_mem_range()
 
-            data['read_mem_areas'] = [[hex(min_addr), hex(max_addr)]]
+            # append the full readable area (maybe needed)
+            full_read_range = self.extract_combined_range(self.binary)
+            data['read_mem_areas'] = [[full_read_range[0], full_read_range[1]]]
+            data['read_mem_areas'].append([hex(min_addr), hex(min_addr+15)])
             if(eval(data['write_mem_areas'][0][0]) > eval(rsp_register_info)):
                 original_stack_range = data['write_mem_areas'][0]
                 data['read_mem_areas'].pop(0)
                 data['write_mem_areas'].append([hex(eval(rsp_register_info)), hex(eval(original_stack_range[1]))])
                 data['write_mem_areas'].append([hex(min_addr), hex(max_addr)])
             else:
-                data['write_mem_areas'].append([hex(min_addr), hex(max_addr)])
+                data['write_mem_areas'].append([hex(min_addr), hex(min_addr+15)])
+            
+             
+            
+            print(data)
 
             with open(json_file, 'w') as file:
                 json.dump(data, file)
             
         return 
+
+    
+
+    def extract_combined_range(self,binary_path):
+        # Run gdb with the binary and execute 'info proc mappings'
+        try:
+            # Run gdb, pause the program, and capture mappings
+            gdb_command = f"""
+            gdb -batch -ex 'file {binary_path}' -ex 'start' -ex 'info proc mappings' -ex 'quit'
+            """
+            result = subprocess.run(gdb_command, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            #create_symlink(original_target, symlink_path)
+            # Check for errors in gdb execution
+            if result.returncode != 0:
+                print(f"Error: {result.stderr.strip()}")
+                return None
+            
+            # Parse the output for readable address ranges
+            mappings = result.stdout
+            print(mappings)
+            readable_ranges = []
+            
+            # Regular expression to match the mappings format
+            mapping_pattern = re.compile(
+                r"^\s*(0x[0-9a-f]+)\s*(0x[0-9a-f]+)\s*(0x[0-9a-f]+)\s*(0x[0-9a-f]+)\s*(.*)$"
+            )
+            
+            for line in mappings.splitlines():
+                match = mapping_pattern.match(line)
+                if match:
+                    start_addr, end_addr, size, offset, objfile = match.groups()
+                    # Include ranges with binary path in objfile, exclude stack, and non-binary paths
+                    if binary_path in objfile and "[stack]" not in objfile and "[vdso]" not in objfile:
+                        readable_ranges.append((start_addr, end_addr))
+            
+            if not readable_ranges:
+                print("No readable ranges found!")
+                return None
+
+            # Combine ranges into a single range: start of first to end of last
+            start = readable_ranges[0][0]
+            end = readable_ranges[-1][1]
+
+            return start, end    
+        except Exception as e:
+            print(f"Error while processing: {e}")
+        return None
 
     def remote_debug_all_regs(self):
         program_args = self.win_stack
@@ -265,6 +320,7 @@ class SGC:
         for line in reversed(vul_disass.decode().split('\n')):
             if 'ret' in line:
                 addr = line.split(':')[0].strip()
+                
                 return hex(int(addr, 16))
 
         return hex(0)
@@ -307,14 +363,15 @@ class SGC:
         for line in process.stdout:
             print(line)
 
-        command_2 = ['/venv-sgc/bin/python3', 'synthesizer.py', '-v', '-j', '2', '-c', 'config_execve.json', target_dir, '-o', smt_out_dir]
+        command_2 = ['/venv-sgc/bin/python3', 'synthesizer.py', '-v', '-j', '12', '-c', 'config_execve.json', target_dir, '-o', smt_out_dir]
         print(command_2)
         process = subprocess.Popen(command_2, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True, cwd=sgc_dir)
         for line in process.stdout:
             print(line)
         print(command_2)
         if(self.get_correct_stack(smt_out_dir)):
-            self.write_csv('result/SGC.3600.x86.0715_3_params_itself.csv',['SGC', self.binary, True])
+            #self.write_csv('result/SGC.3600.x86.0715_3_params_itself.csv',['SGC', self.binary, True])
+            print("Chain found!")
 
     def write_csv(self, filename, one_row_data):
         import csv

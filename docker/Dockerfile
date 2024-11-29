@@ -6,7 +6,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 COPY ./zh /zh
 RUN apt-get update && \
-    apt-get install -y locales python python3 python3-pip python3-venv make gcc nasm git libcapstone-dev curl unzip wget cmake && \
+    apt-get install -y locales python python3 python3-pip python3-venv make gcc nasm git libcapstone-dev curl unzip wget cmake gdb && \
 # uncomment locales and generate them
     sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
     locale-gen && \
@@ -98,15 +98,15 @@ RUN mkdir /venv-sgc/builds && cd /venv-sgc/builds && \
 RUN ln -s /venv-sgc/builds/ghidra* /bin/ghidra && \
     ln -s /venv-sgc/builds/ghidra*/support/analyzeHeadless /bin/ghidra-analyzeHeadless
 
-# Install boolector (sgc)
+#Install boolector (sgc)
 RUN mkdir -p /venv-sgc/builds && cd /venv-sgc/builds && \
     wget -q -O boolector.zip https://github.com/Boolector/boolector/archive/refs/tags/3.2.2.zip && \
     unzip -q boolector.zip && rm boolector.zip && \
     mv boolector-* boolector && cd boolector && \
     ./contrib/setup-lingeling.sh && \
+    ./contrib/setup-picosat.sh && \
     ./contrib/setup-btor2tools.sh && \
     ./configure.sh && cd build && make
-
 # For Ghidra
 RUN apt-get install -y openjdk-11-jdk
 
@@ -114,7 +114,7 @@ RUN apt-get install -y openjdk-11-jdk
 RUN ln -s /venv-sgc/builds/boolector/build/bin/boolector /usr/bin/boolector
 
 # create symlink /bin/sh -> /zh
-RUN rm -rf /bin/sh && ln -s /zh /bin/sh && \
+RUN rm -rf /bin/fh && ln -s /zh /bin/fh && \
     rm -rf /var/lib/apt/lists/* /root/.cache
 
 # libc.so built with popen calling /bin/bash instead of /bin/sh
