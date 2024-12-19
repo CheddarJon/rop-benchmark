@@ -109,7 +109,7 @@ class BaseJob:
         parser = ArgumentParser(description="Rop-benchmark entry point for one test of one tool")
         parser.add_argument("-s", "--script-dir", type=str,
                             help="Path to script hosted directory")
-        parser.add_argument("-t", "--timeout", type=int, default=300,
+        parser.add_argument("-t", "--timeout", type=int, default=3600,
                             help="The number of seconds for timeout test")
         parser.add_argument("binary", type=str,
                             help="Binary for testing")

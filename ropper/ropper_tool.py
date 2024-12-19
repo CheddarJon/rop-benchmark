@@ -34,14 +34,19 @@ class Ropper:
 
         lines = stdout.splitlines()
         n = len(lines)
-        ropchain_generator = [b"from __future__ import print_function"]
+        ropchain_generator = []
         for i, line in enumerate(lines):
             if line == b"from struct import pack":
                 n = i
             if i >= n:
-                if line == b"print rop":
-                    ropchain_generator.append(b"print(rop, end='')")
+                if line == b"print(rop)":
+                    ropchain_generator.append(b"import fuckpy3")
+                    ropchain_generator.append(b"print(rop.str())")
                     break
+                elif line == b"rop = ''":
+                    ropchain_generator.append(b"rop = b''")
+                elif line == b"rop += '//bin/sh'":
+                    ropchain_generator.append(b"rop += b'//bin/sh'")
                 else:
                     ropchain_generator.append(line)
 
@@ -49,7 +54,7 @@ class Ropper:
         with open(script_path, 'wb') as script:
             script.write(b"\n".join(ropchain_generator))
 
-        script_cmd = ["/usr/bin/python2", script_path]
+        script_cmd = ["/venv-ropper/bin/python3", script_path]
         with open(self.ropchain, "wb") as ropchain_output:
             script_p = Popen(script_cmd, stdout=ropchain_output, stderr=PIPE)
             try:

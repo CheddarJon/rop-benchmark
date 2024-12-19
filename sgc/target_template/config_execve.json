@@ -1,0 +1,20 @@
+{
+  "executable": "",
+  "arch": "x86_64",
+  "load_address" : "0x000000",
+  "preconditions": [
+                  ["IRDst", "0x4013fa", 64],
+                  ["RSP", "0x7fffffffd518", 64]
+              ],
+  "postconditions": [
+                  ["IRDst", "", 64],
+                  ["RAX",  "0x3b", 64],
+                  ["RSI",  "0x0", 64],
+                  ["RDX",  "0x0", 64]
+              ],
+  "ptr_postconditions": [
+              ["RDI", "/bin/fh", 64]
+          ],
+  "read_mem_areas": [],
+  "write_mem_areas": [["0x7ffffffde000", "0x7ffffffff000"]]
+}

@@ -15,7 +15,7 @@ class Angrop:
     def run(self, timeout):
         from os.path import abspath, dirname, join
         runner = abspath(join(dirname(__file__), "angrop_runner.py"))
-        cmd = ["/usr/bin/python3", runner, self.binary, self.ropchain]
+        cmd = ["python3", runner, self.binary, self.ropchain]
         if self.bad_chars:
             cmd += [self.bad_chars]
         self.logger.debug("RUN angrop runner {}".format(" ".join(cmd)))
